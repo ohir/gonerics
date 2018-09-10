@@ -140,10 +140,10 @@ Example:
 
 ```go
 // Method Checkout returns sum of all Ks in given []K slice.
-// You can use this method on a slice of any struct that is either:
+// You can use this method on a slice of any type that is either:
 // 1. assignable to int
 // 2. has a field named Value that is assignable to int
-// 3. If K has additional field named Discount that is of type int
+// +. If K has additional field named Discount that is of type int
 //    this discount will be be included in the total.
 
 func (type []K) Checkout() (total type R) {
