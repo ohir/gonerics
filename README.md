@@ -1,10 +1,3 @@
----
-title: "Gonerics"
-date: 2018-09-10T12:00:46+02:00
-anchor: "gonerics"
-weight: 10 
----
-
 ## Rationale
 
 At last the Go community started to discuss not whether generics are of any use but
