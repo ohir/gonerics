@@ -111,9 +111,10 @@ type does not match somewhere it is a compile error of 'func/method (*identifier
 ```go
 // Method Checkout returns sum of all Ks in given []K slice.
 // You can use this method on a slice of any type that is either:
-// 1. assignable to int
-// 2. has a field named Value that is assignable to int
-// +. If K has additional field named Discount that is of type int
+// 1. assignable to int - then it returns int
+// 2. is of type complex128 - then it returns complex128
+// 3. has a field named Value that is assignable to int
+// +. **If** K has additional field named Discount that is of type int
 //    this discount will be be included in the total.
 ```
 
