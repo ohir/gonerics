@@ -223,6 +223,14 @@ on already (at func/package contracts) constrained "In" types. It gives power, b
 ## 3. More code samples
 
 ```go
-
+// TODO
 ```
+
+## 4. Feedback
+
+Give a star if you're positive about a craftsman's approach to Go generics.
+
+Discuss on go-nuts, i read it. If you see a real issue with this approach - open an issue ;)
+
+TC, Ohir
 
