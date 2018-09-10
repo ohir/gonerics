@@ -90,7 +90,7 @@ Below is "specification by example" of possible constraints. Not exhausting one,
 
 typeholder | Constraint | Description
 -----------|------------|------------
-`T`|`range st1, st2, st3          `| T **is one of** given types (in set); comma here reads 'OR'
+`T`|`range st1, st2, st3          `| T **is one of** given types (in set)
 `T`|`= io.Reader                  `| T **implements** interface
 `T`|`= context.Context            `|   and other interface
 `T`|`= int                        `| T **is of type** int (doesn't make much sense here but it does in switch)
@@ -133,8 +133,8 @@ case consist of valid contractual constrains over types that are further conjuga
 left-to-right and top-to-bottom; the first case that checked type matches triggers compilation of the
 statements of the associated case; the other cases are skipped. If no case matches then substituted
 type **does not match** and no code from this instance of `for type switch` is used. If substituted
-type does not match somewhere it is a compile error of 'func/method identifier can not be used with
-given type'. There is no `default:` and no `fallthrough`.
+type does not match somewhere it is a compile error of 'func/method (*identifier*) can not be used with
+(*given*) type'. There is no `default:` and no `fallthrough`.
 
 Example:
 
@@ -215,9 +215,14 @@ There is a subtle thing with "Out" (return) typeholders. I opt for them being sp
 for readability. Compiler will know whether they are properly declared in `for type switch` cases, but
 it might be hard for reader to find all occurences and variants. Thats why in example above is the
 `for type R range int, complex128` clause. But it somewhat restricts declarations that will/might use
-substituted types in return type declarations. Here I knew it will be complex128. Needs pondering.
+typeholders in return type declarations. Here I knew it will be complex128. It needs more pondering.
 
 I do not know yet whether `for type switch` case expressions should be allowed to narrow constraints
 on already (at func/package contracts) constrained "In" types. It gives power, but can allow for really convoluted and unreadable code.
 
+## 3. More code samples
+
+```go
+
+```
 
