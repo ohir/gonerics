@@ -234,3 +234,6 @@ Discuss on go-nuts, i read it. If you see a real issue with this approach - open
 
 TC, Ohir
 
+## Footnotes
+
+>> No employer minutes were stolen for this work. Its in public domain now.
