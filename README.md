@@ -16,22 +16,26 @@ As empty criticism is bad, I felt compelled to give a consistent counter-proposa
 ## Assumptions
 
 - It must read as natural as Go1
-- It must not introduce new syntax to the language: **no instantiations at call site**
+- It must not introduce (much) new syntax to the language: **no instantiations at call site**
 - It should not introduce new keywords
 - It should not introduce too many new concepts
 - It must work (for at least hypothetical 80% usecases)
-- It **need not** to be easy to implement, but it must aim for **O(n)** complexity.
+- It **need not** to be easy to implement, but it must aim for **O(n)** complexity (for n types).
 
  *Hereafter I will use __CGG__ acronym for the long "Craftsman's Go Generics (proposal)"*.
- *I will use simple language as much as possible. Eg. "contract constarint" instead of "predicate". If my proposal will ring with the community, it will first got community provided corrections then at last proper formal specification.*  
+ *I will use simple language as much as possible. Eg. "contract constarint" instead of "predicate". If my proposal will ring with the community, it will first got community provided corrections then at last proper formal specification. Or the Go devs will tinker with it, maybe.*  
 
 ## 0. What stays 
 
 - The syntax introducing generic types of '**type TypePlaceholderIdentifier**' form.
+
     `func Gen(a, b type T, c type U) (r type R)`. Used only in func **definition**.
+
 - The notion of **contract** as means of stating constraints on allowed types. Contract specifies everything what both compiler and I, either as mere reader or prospect user, need to know to sucessfully invoke func of interest.
 
 ## 1. Meet the '**for type**' contract
+
+> *substituted type - real type the code uses in given place after code variant instantiation.*
 
 Given generic `func Gen(a, b type T, c type U) (r type R)` there are properties of the substitution type(s) that are **required** for the function to work as intended by it's creator. What is required is written into the contract. What is not required does not matter hence it has no place in the contract. CGG uses **`for type`** clause as the contract block declaration.
 
@@ -74,8 +78,6 @@ func Gen(a, b type T, c type U) (r type R) {
 
 
 ### 1.2. CGG Contractual Constraints
-
-> *substituted type - real type the code uses in given place after code variant instantiation.*
 
 Constraint may apply to the whole substituted type or to part thereof.
 Contractual constraint is given as the Go type or type literal.
@@ -132,7 +134,7 @@ left-to-right and top-to-bottom; the first case that checked type matches trigge
 statements of the associated case; the other cases are skipped. If no case matches then substituted
 type **does not match** and no code from this instance of `for type switch` is used. If substituted
 type does not match somewhere it is a compile error of 'func/method identifier can not be used with
-given type'.
+given type'. There is no `default:` and no `fallthrough`.
 
 Example:
 
@@ -140,7 +142,7 @@ Example:
 // Method Checkout returns sum of all Ks in given []K slice.
 // You can use this method on a slice of any struct that is either:
 // 1. assignable to int
-// 2. has a field named Value that is convertible to int
+// 2. has a field named Value that is assignable to int
 // 3. If K has additional field named Discount that is of type int
 //    this discount will be be included in the total.
 
@@ -173,7 +175,7 @@ func (type []K) Checkout() (total type R) {
 }
 ```
 
-# Seems that [generic method I wished](https://play.golang.org/p/qkslpdyvhaq) can now be specified :)
+# [Generic method I wished](https://play.golang.org/p/qkslpdyvhaq) can now be specified :)
 
 ```go
 package main
@@ -212,8 +214,8 @@ ctotal := cmplx.ac.Checkout()
 There is a subtle thing with "Out" (return) typeholders. I opt for them being specified at func level contract
 for readability. Compiler will know whether they are properly declared in `for type switch` cases, but
 it might be hard for reader to find all occurences and variants. Thats why in example above is the
-`for type R range int, complex128` clause. But it somewhat restricts declaration that use substituted
-types in return type declarations.
+`for type R range int, complex128` clause. But it somewhat restricts declarations that will/might use
+substituted types in return type declarations. Here I knew it will be complex128. Needs pondering.
 
 I do not know yet whether `for type switch` case expressions should be allowed to narrow constraints
 on already (at func/package contracts) constrained "In" types. It gives power, but can allow for really convoluted and unreadable code.
