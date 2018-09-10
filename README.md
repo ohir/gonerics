@@ -75,54 +75,31 @@ func Gen(a, b type T, c type U) (r type R) {
 Constraint may apply to the whole substituted type or to part thereof.
 Contractual constraint is given as the Go type or type literal.
 All constraints in `for type` contract must be fulfilled by the substituted type for it to pass.
-As if all were conjugated by logical AND.
+As if all were conjugated by logical AND. Full list of possible constraints is given in point 2.
 
-Below is "specification by example" of possible constraints. Not exhausting one, yet.
+Example:
 
 `for type (`
 
 typeholder | Constraint | Description
 -----------|------------|------------
 `T`|`range st1, st2, st3          `| T **is one of** given types (in set)
-`T`|`= io.Reader                  `| T **implements** interface
-`T`|`= context.Context            `|   and other interface
-`T`|`= TypeX                      `| T **is of type** TypeX (doesn't make much sense here but it does in switch)
+`T`|`= TypeX                      `| T **is of type** TypeX
 `T`|`= TypeX()                    `| T **is assignable** to TypeX. 
-`T`|`= chan G                     `| T **is a** channel (bidi) for G values
-`T`|`= chan<- G                   `| T **is a** channel (send) for G values
-`T`|`= <-chan G                   `| T **is a** channel (receive) for G values
-`T`|`= struct Solid               `| T **has** AT LEAST ALL fields of Solid type struct (eg. embeds one)
-`T.BiPipe`|`= chan G              `| T **has** field 'BiPipe' of bidi channel for G values
-`T.TxPipe`|`= chan<- G            `| T **has** field 'TxPipe' of send channel for G values
-`T.RxPipe`|`= <-chan G            `| T **has** field 'RxPipe' of receive channel for G values
-`T.Weight`|`= TypeX()             `| T **has** field 'Weight' assignable to type TypeX
-`T.Gstats`|`= struct Stats        `| T **has** field 'Gstats' that is of struct type with AT LEAST ALL fields of Stats
-`T.LitStr`|`= struct{ a, b int }  `| T **has** field 'LitStr' that is struct type with AT LEAST a, b int fields
-`T.vcheck`|`= func(U) bool        `| T **has** field 'vcheck' of func value (signature given)
 `T.weight`|`= TypeX               `| T **has** field 'weight' OF type TypeX
-`T.output`|`= io.Writer           `| T **has** field 'output' of type implementing io.Writer
-`T.output`|`= []                  `|   that CAN BE indexed and sliced (elements of any type)
-`T.output`|`= []interface{}       `|   kosher version of above
-`T.failed`|`= []E                 `| T **has** field 'failed' that IS a slice or array of Es
-`T.dummie`|`= [64]int             `| T **has** field 'dummie' of exact array type
-`T.Validm`|`= map[K]V             `| T **has** field 'Validm' that is a map of Vs with K type keys
-`T`|` func (T) Commit(bool) error` | T **has** method (T) Commit(bool) error; Having pointer one will pass too. 
-`T`|` func(*T) Revert() error`     | T **has** method Revert with pointer receiver; (T) will not pass.
-`T`|`= func(T) bool`               | T **is a** func of given signature
-`T`|`= func Check(T) bool         `|   variant: allow c&p named function. Anonymous function will pass too.
-`T.ckin`|` func (ckin) Commit(bool) error`|T **has** field ckin of type that has method Commit(bool) error
-`T.ckin`|` func (*ckin) Commit(bool) error`|as above, must have pointer receiver
+`T.height`|`= TypeX()             `| T **has** field 'height' assignable to type TypeX
 
 `)`
 
-
-### 1.3. Third place: `for type switch`
+### 1.3. `for type switch`
 
 The `for type` contract at package or func level demands from substituted type that it pass all checks.
 It might be too much restricting. Hence CGG allows for third level checks: in `for type switch`.
 All cases of this switch are checked and resolved at **compile time**. Logical conditions on each
 case consist of valid contractual constrains over types that are further conjugated with explicit
-&&, and only with AND. Switch semantics: case expressions made of contractual constraints are evaluated
+AND (&&), and only with AND. 
+
+**Switch semantics:** case expressions made of contractual constraints are evaluated
 left-to-right and top-to-bottom; the first case that checked type matches triggers compilation of the
 statements of the associated case; the other cases are skipped. If no case matches then substituted
 type **does not match** and no code from this instance of `for type switch` is used. If substituted
@@ -138,7 +115,18 @@ type does not match somewhere it is a compile error of 'func/method (*identifier
 // 2. has a field named Value that is assignable to int
 // +. If K has additional field named Discount that is of type int
 //    this discount will be be included in the total.
+```
 
+Below are **all** constraints I need for my example generic method to work.
+Single constraint on return type, and four for the receiver type:
+
+ 1. `R range int, complex128` // R **is one of** specified types. Func level
+ 2. `K = int()` // K is assignable to int (case)
+ 3. `K = complex128` // K is of type complex128 (case)
+ 4. `K.Value = int()` // K.Value is assignable to int (case)
+ 5. `K.Discount = int` // K.Discount is of type int (case)
+
+```go
 func (type []K) Checkout() (total type R) {
   for type R range int, complex128 // Eph... Unreal prices ahead
   for type switch {
@@ -200,9 +188,50 @@ ctotal := cmplx.ac.Checkout()
 }
 ```
 
-## 2. Subtleties
+## 2. List of possible contractual constraints
 
-### 2.1 In and Out typeholders
+It is "specification by example". Not exhausting one, yet.
+
+`for type (`
+
+typeholder | Constraint | Description
+-----------|------------|------------
+`T`|`range st1, st2, st3          `| T **is one of** given types (in set)
+`T`|`= io.Reader                  `| T **implements** interface
+`T`|`= context.Context            `|   and other interface
+`T`|`= TypeX                      `| T **is of type** TypeX (doesn't make much sense here but it does in switch)
+`T`|`= TypeX()                    `| T **is assignable** to TypeX. 
+`T`|`= chan G                     `| T **is a** channel (bidi) for G values
+`T`|`= chan<- G                   `| T **is a** channel (send) for G values
+`T`|`= <-chan G                   `| T **is a** channel (receive) for G values
+`T`|`= struct Solid               `| T **has** AT LEAST ALL fields of Solid type struct (eg. embeds one)
+`T.BiPipe`|`= chan G              `| T **has** field 'BiPipe' of bidi channel for G values
+`T.TxPipe`|`= chan<- G            `| T **has** field 'TxPipe' of send channel for G values
+`T.RxPipe`|`= <-chan G            `| T **has** field 'RxPipe' of receive channel for G values
+`T.Weight`|`= TypeX()             `| T **has** field 'Weight' assignable to type TypeX
+`T.Gstats`|`= struct Stats        `| T **has** field 'Gstats' that is of struct type with AT LEAST ALL fields of Stats
+`T.LitStr`|`= struct{ a, b int }  `| T **has** field 'LitStr' that is struct type with AT LEAST a, b int fields
+`T.vcheck`|`= func(U) bool        `| T **has** field 'vcheck' of func value (signature given)
+`T.weight`|`= TypeX               `| T **has** field 'weight' OF type TypeX
+`T.output`|`= io.Writer           `| T **has** field 'output' of type implementing io.Writer
+`T.output`|`= []                  `|   that CAN BE indexed and sliced (elements of any type)
+`T.output`|`= []interface{}       `|   kosher version of above
+`T.failed`|`= []E                 `| T **has** field 'failed' that IS a slice or array of Es
+`T.dummie`|`= [64]TypeX           `| T **has** field 'dummie' of exact array type
+`T.Validm`|`= map[K]V             `| T **has** field 'Validm' that is a map of Vs with K type keys
+`T`|` func (T) Commit(bool) error` | T **has** method (T) Commit(bool) error; Having pointer one will pass too. 
+`T`|` func(*T) Revert() error`     | T **has** method Revert with pointer receiver; (T) will not pass.
+`T`|`= func(T) bool`               | T **is a** func of given signature
+`T`|`= func Check(T) bool         `|   variant: allow c&p named function. Anonymous function will pass too.
+`T.ckin`|` func (ckin) Commit(bool) error`|T **has** field ckin of type that has method Commit(bool) error
+`T.ckin`|` func (*ckin) Commit(bool) error`|as above, must have pointer receiver
+
+`)`
+
+
+## 3. Subtleties
+
+### 3.1 In and Out typeholders
 
 There is a subtle thing with "Out" (return) typeholders. I opt for them being specified at func level contract
 for readability. Compiler will know whether they are properly declared in `for type switch` cases, but
@@ -213,13 +242,13 @@ typeholders in return type declarations. Here I knew it will be complex128. It n
 I do not know yet whether `for type switch` case expressions should be allowed to narrow constraints
 on already (at func/package contracts) constrained "In" types. It gives power, but can allow for really convoluted and unreadable code.
 
-## 3. More code samples
+## 4. More code samples
 
 ```go
 // TODO
 ```
 
-## 4. Feedback
+## 5. Feedback
 
 Give a star if you're positive about a craftsman's approach to Go generics.
 
