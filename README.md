@@ -86,8 +86,8 @@ typeholder | Constraint | Description
 `T`|`range st1, st2, st3          `| T **is one of** given types (in set)
 `T`|`= io.Reader                  `| T **implements** interface
 `T`|`= context.Context            `|   and other interface
-`T`|`= int                        `| T **is of type** int (doesn't make much sense here but it does in switch)
-`T`|`= int()                      `| T **is assignable** to int
+`T`|`= TypeX                      `| T **is of type** TypeX (doesn't make much sense here but it does in switch)
+`T`|`= TypeX()                    `| T **is assignable** to TypeX. 
 `T`|`= chan G                     `| T **is a** channel (bidi) for G values
 `T`|`= chan<- G                   `| T **is a** channel (send) for G values
 `T`|`= <-chan G                   `| T **is a** channel (receive) for G values
@@ -95,11 +95,11 @@ typeholder | Constraint | Description
 `T.BiPipe`|`= chan G              `| T **has** field 'BiPipe' of bidi channel for G values
 `T.TxPipe`|`= chan<- G            `| T **has** field 'TxPipe' of send channel for G values
 `T.RxPipe`|`= <-chan G            `| T **has** field 'RxPipe' of receive channel for G values
-`T.Weight`|`= int()               `| T **has** field 'Weight' assignable to int
+`T.Weight`|`= TypeX()             `| T **has** field 'Weight' assignable to type TypeX
 `T.Gstats`|`= struct Stats        `| T **has** field 'Gstats' that is of struct type with AT LEAST ALL fields of Stats
 `T.LitStr`|`= struct{ a, b int }  `| T **has** field 'LitStr' that is struct type with AT LEAST a, b int fields
 `T.vcheck`|`= func(U) bool        `| T **has** field 'vcheck' of func value (signature given)
-`T.weight`|`= int                 `| T **has** field 'weight' OF type int
+`T.weight`|`= TypeX               `| T **has** field 'weight' OF type TypeX
 `T.output`|`= io.Writer           `| T **has** field 'output' of type implementing io.Writer
 `T.output`|`= []                  `|   that CAN BE indexed and sliced (elements of any type)
 `T.output`|`= []interface{}       `|   kosher version of above
