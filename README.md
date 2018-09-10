@@ -198,9 +198,9 @@ var sale []SItem
 var cmplx = []complex128{1 + 6i, -2 + 4i, -4 + 0i, -1 + -9i}
 // ...
 // cash customer
-total := regulars.ac.Checkout() // call generic method on
-total += sale.ac.Checkout()
-total += x.ac.Checkout()
+total := regulars.ac.Checkout() // call generic method from ac package on
+total += sale.ac.Checkout()     // many types. This is the single point where
+total += x.ac.Checkout()        // language semantics need to change
 
 // And complex prices for unreal things can be sumed too
 ctotal := cmplx.ac.Checkout() 
