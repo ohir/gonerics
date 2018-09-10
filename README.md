@@ -129,7 +129,7 @@ type **does not match** and no code from this instance of `for type switch` is u
 type does not match somewhere it is a compile error of 'func/method (*identifier*) can not be used with
 (*given*) type'. There is no `default:` and no `fallthrough`.
 
-Example:
+# [Generic method I wished](https://play.golang.org/p/qkslpdyvhaq) can now be specified :)
 
 ```go
 // Method Checkout returns sum of all Ks in given []K slice.
@@ -168,7 +168,7 @@ func (type []K) Checkout() (total type R) {
 }
 ```
 
-# [Generic method I wished](https://play.golang.org/p/qkslpdyvhaq) can now be specified :)
+# ... and used as intended:
 
 ```go
 package main
