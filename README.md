@@ -243,6 +243,11 @@ typeholders in return type declarations. Here I knew it will be complex128. It n
 I do not know yet whether `for type switch` case expressions should be allowed to narrow constraints
 on already (at func/package contracts) constrained "In" types. It gives power, but can allow for really convoluted and unreadable code.
 
+### 3.2 QA and FAQ
+
+ 1. Does generic method possible on a type counts as an type's interface member?
+    **No.** You can wrap generic one as a method defined on your type. 
+
 ## 4. More code samples
 
 ```go
