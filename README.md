@@ -13,18 +13,20 @@ As empty criticism is bad, I felt compelled to give a consistent counter-proposa
 - It should not introduce new keywords
 - It should not introduce too many new concepts
 - It must work (for at least hypothetical 80% usecases)
-- It **need not** to be easy to implement, but it must aim for **O(n)** complexity (for n types).
+- It **need not** to be easy to implement, but it must aim for **O(n)** complexity (for n types/constraints).
 
  *Hereafter I will use __CGG__ acronym for the long "Craftsman's Go Generics (proposal)"*.
  *I will use simple language as much as possible. Eg. "contract constarint" instead of "predicate". If my proposal will ring with the community, it will first got community provided corrections then at last proper formal specification. Or the Go devs will tinker with it, maybe.*  
 
 ## 0. What stays 
 
+  ([from Russ Cox proposal[(https://go.googlesource.com/proposal/+/master/design/go2draft-generics-overview.md))
+
 - The syntax introducing generic types of '**type TypePlaceholderIdentifier**' form.
 
     `func Gen(a, b type T, c type U) (r type R)`. Used only in func **definition**.
 
-- The notion of **contract** as means of stating constraints on allowed types. Contract specifies everything what both compiler and I, either as mere reader or prospect user, need to know to sucessfully invoke func of interest.
+- The notion of **contract** as means of stating constraints on allowed types. Contract specifies everything what both compiler and I, either as mere reader or prospect user, need to know to sucessfully compile/use generic func of interest.
 
 ## 1. Meet the '**for type**' contract
 
@@ -129,7 +131,7 @@ Single constraint on return type, and four for the receiver type:
 
 ```go
 func (type []K) Checkout() (total type R) {
-  for type R range int, complex128 // Eph... Unreal prices ahead
+	// ~~for type R range int, complex128~~ // No longer needed, See 3.1
   for type switch {
   case ( K.Value = int() && K.Discount = int ): // items with "Sale" sticker
     var total int // define return type
@@ -198,6 +200,8 @@ It is "specification by example". Not exhausting one, yet.
 typeholder | Constraint | Description
 -----------|------------|------------
 `T`|`range st1, st2, st3          `| T **is one of** given types (in set)
+`T`|`range st1(), st2(), st3()    `| T **is assignable to one of** given types 
+`T`|`range st1, st2, st3()        `|   See 4.1 
 `T`|`= io.Reader                  `| T **implements** interface
 `T`|`= context.Context            `|   and other interface
 `T`|`= TypeX                      `| T **is of type** TypeX (doesn't make much sense here but it does in switch)
@@ -232,29 +236,85 @@ typeholder | Constraint | Description
 
 ## 3. Subtleties
 
-### 3.1 In and Out typeholders
+### 3.1 Interfaces vs generics
 
-There is a subtle thing with "Out" (return) typeholders. I opt for them being specified at func level contract
-for readability. Compiler will know whether they are properly declared in `for type switch` cases, but
+Can generic method be a part of interface specification or be a member of methodset?
+
+NO. It can NOT. CGG uses "on demand" instantiation of generic code **when** it is first time
+used with given set of real types.
+
+### 3.2 In and Out typeholders
+
+There is a subtle thing with "Out" (return) typeholders.
+
+[12 Sep 2018] Looks like the 'out' constraint should NOT be given at package/func level
+as it not only restricts output set but often it would introduce repeating of the same
+constraint(s).
+
+The spcification rules should be plain simple:
+
+- Substituted type of return typeholder MUST BE defined and unambiguous in the first place of use (naked `return` is a use).
+- Return typeholder MUST BE **either** the same as one of input typeholders, **or** it MUST BE defined with `var R type`
+statement in the body of generic function before first use.
+
+[It was:
+~~I opt for them being specified at func level contract for readability purposes. 
+Compiler will know whether they are properly declared in `for type switch` cases, but
 it might be hard for reader to find all occurences and variants. Thats why in example above is the
 `for type R range int, complex128` clause. But it somewhat restricts declarations that will/might use
-typeholders in return type declarations. Here I knew it will be complex128. It needs more pondering.
+typeholders in return type declarations. Here I knew it will be complex128. It needs more pondering.~~]
 
-I do not know yet whether `for type switch` case expressions should be allowed to narrow constraints
-on already (at func/package contracts) constrained "In" types. It gives power, but can allow for really convoluted and unreadable code.
+### 3.3 Should `for type switch case` be allowed to narrow constraints?
 
-### 3.2 QA and FAQ
+Aka whether `case` should be allowed to "differentiate further" having the
+more general constraint up levels. 
 
- 1. Does generic method possible on a type counts as an type's interface member?
-    **No.** You can wrap generic one as a method defined on your type. 
+YES. It seems good for code readability:
 
-## 4. More code samples
+``` go
+func (a, b []N) (r bool) {
+  for type N range uint64, uint32, uint16, uint8, byte
+	for type switch {
+	case N byte():  // we have faster/better algorithm for bytes/uints8
+	    // ... use it here
+	    return r
+	}
+	// other uints go here
+	// ... use slower alghoritm for bigger ints here
+	return r
+}
+``` 
+
+## 4. Open Qs/As
+
+### 4.1 `T range` and mix of "is"/"is assignable to" constraints
+Can contractual constraint in form `T range st1, st2, st3` be mixed
+freely with `T range st1(), st2(), st3()` giving eg:
+
+`T range st1, st2, st3() // is st1 || is st2 || is assignable to st3`
+
+Seems so, it would allow for great conciseness.
+
+## 5. More code samples
 
 ```go
-// TODO
+// Min returns lesser value T
+func Min(a, b T) T {
+  for type switch {
+  case T func (T) Less(T) T:
+      return a.Less(b)
+  }
+  if a < b {
+       return a
+  }
+  return b
+}
+
+
+// TODO next
 ```
 
-## 5. Feedback
+## 6. Feedback
 
 Give a star if you're positive about a craftsman's approach to Go generics.
 
