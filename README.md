@@ -299,6 +299,11 @@ freely with `T range st1(), st2(), st3()` giving eg:
 
 Seems so, it would allow for great conciseness.
 
+### 4.2 signed/unsigned
+
+While Go1 allows a cast from int to uint without doing abs() [this is C fail that lingers]
+within `for type` constraint `int()` does NOT allow for unsigned types and vice versa.
+
 ## 5. More code samples
 
 ```go
@@ -314,6 +319,23 @@ func Min(a, b T) T {
   return b
 }
 
+// Sum method 
+func (x type []K) Sum() (total type K) {
+  for type K range int64(), float64(), complex128()
+    for _, v := range x {
+      total += v.Value
+    }
+    return
+}
+
+// Sum func
+func Sum(x type []K) (total type K) {
+  for type K range int64(), float64(), complex128()
+    for _, v := range x {
+      total += v.Value
+    }
+    return
+}
 
 // TODO next
 ```
