@@ -20,7 +20,7 @@ As empty criticism is bad, I felt compelled to give a consistent counter-proposa
 
 ## 0. What stays 
 
-  ([from Russ Cox proposal[(https://go.googlesource.com/proposal/+/master/design/go2draft-generics-overview.md))
+  ([from Russ Cox proposal](https://go.googlesource.com/proposal/+/master/design/go2draft-generics-overview.md))
 
 - The syntax introducing generic types of '**type TypePlaceholderIdentifier**' form.
 
