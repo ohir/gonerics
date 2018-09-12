@@ -1,7 +1,11 @@
 ## Rationale
 
 At last the Go community started to discuss not whether generics are of any use but
-actually about __how to implement them__. The [Go2 Generics Proposal](https://go.googlesource.com/proposal/+/master/design/go2draft-generics-overview.md) has been produced by the core-team and published. In my humble opinion, if implemented as proposed, it has potential to destroy Go. Faster than Moose.pm infection destroyed perl.
+actually about __how to implement them__. The [Go2 Generics Proposal](https://go.googlesource.com/proposal/+/master/design/go2draft-generics-overview.md) has been produced by the core-team and published. In my humble opinion, if implemented as proposed, it has potential to destroy Go: it at least doubles mental overhead needed to comprehend code you might see and its parenthosis is just slightly
+milder than in **C** function pointers. It still needs instantiation at call site. As painful as **`multi<level<java>>`** or **C++** instantiations.
+
+**Even if __only gurus will write generic code__, all its users, beginners too, must then read it.**
+
 That's why [I ranted publicly](https://groups.google.com/forum/#!topic/golang-nuts/_L9G0968HBk) on the go-nuts list.
 
 As empty criticism is bad, I felt compelled to give a consistent counter-proposal; one that can make my ["Craftsman wishes"](https://play.golang.org/p/qkslpdyvhaq) code compile and work. Here we are.
@@ -316,6 +320,14 @@ func Min(a, b T) T {
 
 ## 6. Feedback
 
+Answering allegation that it is mathematically inconceivable:
+
+Yes. I know that I can not, in terms of types theory, prove soundness of what I proposed.
+
+It just **swims like Generics, it flys like Generics, it quacks like Generics.** And it is **READABLE**.
+
+---
+
 Give a star if you're positive about a craftsman's approach to Go generics.
 
 Discuss on go-nuts, i read it. If you see a real issue with this approach - open an issue ;)
@@ -323,5 +335,7 @@ Discuss on go-nuts, i read it. If you see a real issue with this approach - open
 TC, Ohir
 
 ## Footnotes
+
+
 
 >> No employer minutes were stolen for this work. Its in public domain now.
