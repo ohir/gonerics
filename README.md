@@ -131,7 +131,7 @@ Single constraint on return type, and four for the receiver type:
 
 ```go
 func (type []K) Checkout() (total type R) {
-	// ~~for type R range int, complex128~~ // No longer needed, See 3.1
+	// for type R range int, complex128  No longer is needed, See 3.2
   for type switch {
   case ( K.Value = int() && K.Discount = int ): // items with "Sale" sticker
     var total int // define return type
@@ -201,7 +201,7 @@ typeholder | Constraint | Description
 -----------|------------|------------
 `T`|`range st1, st2, st3          `| T **is one of** given types (in set)
 `T`|`range st1(), st2(), st3()    `| T **is assignable to one of** given types 
-`T`|`range st1, st2, st3()        `|   See 4.1 
+`T`|`range st1, st2, st3()        `|   A mix of above. See "open questions" 4.1
 `T`|`= io.Reader                  `| T **implements** interface
 `T`|`= context.Context            `|   and other interface
 `T`|`= TypeX                      `| T **is of type** TypeX (doesn't make much sense here but it does in switch)
