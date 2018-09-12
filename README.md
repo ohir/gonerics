@@ -320,11 +320,12 @@ func Min(a, b T) T {
 
 ## 6. Feedback
 
-Answering allegation that it is mathematically inconceivable:
+Answering "where is a formal proof of soudness and completeness for this?".
 
-Yes. I know that I can not, in terms of types theory, prove soundness of what I proposed.
+Where is one for Go1?
 
-It just **swims like Generics, it flys like Generics, it quacks like Generics.** And it is **READABLE**.
+CGG **swims like Generics, it flys like Generics, it quacks like Generics.** 
+And it is **READABLE**.
 
 ---
 
