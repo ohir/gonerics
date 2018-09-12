@@ -324,7 +324,7 @@ Answering "where is a formal proof of soudness and completeness for this?".
 
 Where is one for Go1?
 
-CGG **swims like Generics, it flys like Generics, it quacks like Generics.** 
+CGG **swims like Generics, flys like Generics, quacks like Generics.** 
 And it is **READABLE**.
 
 ---
