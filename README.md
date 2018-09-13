@@ -9,10 +9,10 @@ so I felt compelled to give a consistent counter-proposal.
 * no new keywords. Only ones known to Go1.
 * contract uses already known Go type definitions and casts.
 * only one new syntax construct for user, and three for generic code
-      * `x.pkg.Method()` generic method call via package selector
-      * `(x type T)` declarations — as in team's proposal
-      * `for type` contract; tied to the package or func
-      * `for type switch` that can further specialise code on matched type 
+  - `x.pkg.Method()` generic method call via package selector
+  - `(x type T)` declarations — as in team's proposal
+  - `for type` contract; tied to the package or func
+  - `for type switch` that can further specialise code on matched type 
 
 ### Generic code sample
 
