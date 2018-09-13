@@ -29,7 +29,7 @@ func (x type []K) Sum() (r type K) {
 }
 
 // Min func returns lesser value T
-func Min(a, b T) T {
+func Min(a, b type T) type T {
   for type switch {
   case T func (T) Less(T) T: // specialise for types
       return a.Less(b)       // that have Less method
