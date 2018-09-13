@@ -1,215 +1,385 @@
-## Rationale
+## "Craftsman's Go Generics" proposal. CGG in short.
+### Rationale
 
-At last the Go community started to discuss not whether generics are of any use but
-actually about __how to implement them__. The [Go2 Generics Proposal](https://go.googlesource.com/proposal/+/master/design/go2draft-generics-overview.md) has been produced by the core-team and published. In my humble opinion, if implemented as proposed, it has potential to destroy Go: it at least doubles mental overhead needed to comprehend code you might see and its parenthosis is just slightly
-milder than in **C** function pointers. It still needs instantiation at call site. As painful as **`multi<level<java>>`** or **C++** instantiations.
+I [criticised](https://groups.google.com/forum/#!topic/golang-nuts/_L9G0968HBk) Go team's proposal
+so I felt compelled to give a consistent counter-proposal.
 
-**Even if __only gurus will write generic code__, all its users, beginners too, must then read it.**
+### Current state of CGG (TL;DR)
 
-That's why [I ranted publicly](https://groups.google.com/forum/#!topic/golang-nuts/_L9G0968HBk) on the go-nuts list.
+* no new keywords. Only ones known to Go1.
+- contract uses already known Go type definitions and casts.
+- only one new syntax construct for user, and three for generic code
+  1. `x.pkg.Method()` generic method call via package selector
+  - `(x type T)` declarations — as in team's proposal
+  - `for type` contract; tied to the package or func
+  - `for type switch` that can further specialise code on matched type 
 
-As empty criticism is bad, I felt compelled to give a consistent counter-proposal; one that can make my ["Craftsman wishes"](https://play.golang.org/p/qkslpdyvhaq) code compile and work. Here we are.
+### Generic code sample
 
-## Assumptions
+```go
+// Sum method 
+func (x type []K) Sum() (r type K) {
+  for type ( 
+      K range int64(), uint64(), float64(), complex128()
+  ) 
+  for _, v := range x {
+    r += v
+  }
+  return
+}
 
-- It must read as natural as Go1
-- It must not introduce (much) new syntax to the language: **no instantiations at call site**
-- It should not introduce new keywords
-- It should not introduce too many new concepts
-- It must work (for at least hypothetical 80% usecases)
-- It **need not** to be easy to implement, but it must aim for **O(n)** complexity (for n types/constraints).
+// Min func returns lesser value T
+func Min(a, b T) T {
+  for type switch {
+  case T func (T) Less(T) T: // specialise for types
+      return a.Less(b)       // that have Less method
+  }
+  if a < b { // all other cases
+       return a
+  }
+  return b
+}
+```
 
- *Hereafter I will use __CGG__ acronym for the long "Craftsman's Go Generics (proposal)"*.
- *I will use simple language as much as possible. Eg. "contract constarint" instead of "predicate". If my proposal will ring with the community, it will first got community provided corrections then at last proper formal specification. Or the Go devs will tinker with it, maybe.*  
+Current Go1 code that now uses `func Min(a, b int)` can use future generic 
+`func Min(a, b T) T` without touching a comma. Call site does not change.
 
-## 0. What stays 
+## Generic code
+### Terms 
 
-  ([from Russ Cox proposal](https://go.googlesource.com/proposal/+/master/design/go2draft-generics-overview.md))
+Given generic `func (a type T) Gen(b type U, c uint32) (r type R, e Error)`
 
-- The syntax introducing generic types of '**type TypePlaceholderIdentifier**' form.
+- **T** and **U** are **"In"** typeholders; reffered simply as "in holders" or just "holders".
+- **R** is a **"return"** (or **"Out"**) typeholder; reffered simply as "return holder"
+- **"Substituted type**" means real type the code uses in given place after code variant instantiation.
+ Often reffered as either "in type" or "out type". 
+- **"in type"** means "substituted type" given to the **"In"** typeholder at call site.
+- **"out type"** means "substituted type" of the return parameter given to the **"Out"** typeholder
+within generic function. Also: type returned to the call site.
+- **"Solid type**" means a non-interface type.
+- **"external type"** means a non-generic type defined elsewhere. Parameters 'c' and 'e' are of defined externally types.
 
-    `func Gen(a, b type T, c type U) (r type R)`. Used only in func **definition**.
+### Generic Interfaces
 
-- The notion of **contract** as means of stating constraints on allowed types. Contract specifies everything what both compiler and I, either as mere reader or prospect user, need to know to sucessfully compile/use generic func of interest.
+- Generic method MAY NOT be a part of interface specification.
+- NO generic method is a member of any methodset.
+- Defined on concrete type method MAY USE (wrap) generic code.
 
-## 1. Meet the '**for type**' contract
+### Generic return types
 
-> *substituted type - real type the code uses in given place after code variant instantiation.*
+There are general limitations on generic return types:
 
-Given generic `func Gen(a, b type T, c type U) (r type R)` there are properties of the substitution type(s) that are **required** for the function to work as intended by it's creator. What is required is written into the contract. What is not required does not matter hence it has no place in the contract. CGG uses **`for type`** clause as the contract block declaration.
+1. Substituted type of a return typeholder must be defined, unambiguous and solid before use. Naked return is a use, too.
+1. **Either** return typeholder MUST BE the same as one of input typeholders
+1. **Or** it MUST BE defined in the body of generic function before use.
 
-Contract constraints can be declared at three scope levels:
+Eg. `var R int`; `var R struct{ c, d int }`; `var R struct{ twas T; uwas U; from io.Reader }`;
 
-   1. At package level - right after the imports.
-   2. At function level - at the beginning of the func body.
-   3. At generic branch within the func body.
+### Generic input types
 
-As with other Go declarations `for type` either is repeated in every line
-or uses `for type ( ... )` construct. It reads naturally in both forms:
+Given a generic code in some `func` there are properties of the substitution type(s) that are
+**required** for the code to work as intended by it's creator. What is
+required is written into the contract. What is not required does not matter
+hence it has no place in the contract.
+
+Contracts are tied to the package and/or function where are used [Readability! Clarity!].
+Reader must not be forced to jump over several files to get a grasp over the code.
+
+### The '**for type**' contract
+
+CGG uses **`for type`** clause as the contract block declaration. The **`for type`**
+contract consists of required by the author of the code constraints on **ALL** of **"in"** typeholders.
+
+Contract constraints can be defined at two scope levels:
+   - package - right after the imports;
+   - function - at the beginning of the func body;
+
+All constraints in `for type` contract must be fulfilled by the substituted type for it to pass.
+As if all were conjugated by logical AND. Constraints defined for a given typeholder (its identifier)
+at package level MAY NOT be redefined (amended, narrowed, extended) at `func` level. [Clarity! Readability!].
+
+The `for type` either is repeated in every line or uses `for type ( ... )` construct.
 
 ```go
 package "ac"
 
 import "something"
 
-// generic package for types of...
-for type (
+for type (                 // package level contract
     T constraint
-    U constraint
 )
+
 //...
 
 func Gen(a, b type T, c type U) (r type R) {
-    // generic function for types of...
-    for type U constraint
-    for type R constraint
-    // T is constrained at package level
-    // ... func body
+    for type U constraint  // func level contract
+                           // T is constrained at package level
+    var R bool             // generic return type MUST be defined 
+                           // within body 
+    // ... body
+        return
 }
-
 ```
-  ```bnf
-  ContractDecl = "for type" ( ContractRule | "(" { ContractRule ";" } ")" ) .
-  ContractRule = TypeHolderIdentifier [ "." TypeHolderFieldIdentifier] RealTypePredicate .
-  ...(I have no time now for complete BNF, excuse me)...
-  ```
-. . 
+.
 
-
-### 1.2. CGG Contractual Constraints
+### Constraints
 
 Constraint may apply to the whole substituted type or to part thereof.
-Contractual constraint is given as the Go type or type literal.
-All constraints in `for type` contract must be fulfilled by the substituted type for it to pass.
-As if all were conjugated by logical AND. Full list of possible constraints is given in point 2.
+Constraint is given in terms of Go type, type literal or cast. Constrain
+may enumerate on possible `one of` types or typecasts using `range` keyword
+followed by a comma-separated list.
 
-Example:
+Full (but not exhaustive) list of constraints is at the end of
+this document in Appendix A.
+
+Constraint examples:
 
 `for type (`
 
-typeholder | Constraint | Description
+Typeholder | Constraint | Description
 -----------|------------|------------
 `T`|`range st1, st2, st3          `| T **is one of** given types (in set)
 `T`|`= TypeX                      `| T **is of type** TypeX
-`T`|`= TypeX()                    `| T **is assignable** to TypeX. 
-`T.weight`|`= TypeX               `| T **has** field 'weight' OF type TypeX
-`T.height`|`= TypeX()             `| T **has** field 'height' assignable to type TypeX
+`T`|`= TypeX()                    `| T **is assignable** via a cast to TypeX. 
+`T`|`func (*T) Check() bool       `| T **has** method 'Check' of given signature 
+`T.height`|`= TypeX()             `| T **has** field 'height' castable to type TypeX
 
 `)`
 
-### 1.3. `for type switch`
+**Important:** in the context of constraints **assignable to via a cast** means that
+a substituted type can be **precisely** casted to the stated type (ie. usually a base one). Implicit conversions are forbidden.
 
-The `for type` contract at package or func level demands from substituted type that it pass all checks.
-It might be too much restricting. Hence CGG allows for third level checks: in `for type switch`.
+So `T = uint64()` allows for any type that has a base type of byte, uint8..uint64 but not one of base type int.
+
+
+
+
+### "for type" switch
+
+is used for branching specialised code over one or more **in** types.
+
 All cases of this switch are checked and resolved at **compile time**. Logical conditions on each
 case consist of valid contractual constrains over types that are further conjugated with explicit
 AND (&&), and only with AND. 
 
 **Switch semantics:** case expressions made of contractual constraints are evaluated
-left-to-right and top-to-bottom; the first case that checked type matches triggers compilation of the
+left-to-right and top-to-bottom; the first case that checked type matches triggers use of the
 statements of the associated case; the other cases are skipped. If no case matches then substituted
 type **does not match** and no code from this instance of `for type switch` is used. If substituted
-type does not match somewhere it is a compile error of 'func/method (*identifier*) can not be used with
-(*given*) type'. There is no `default:` and no `fallthrough`.
+type does not match somewhere within all of possible places (switches) it is a compile error of
+'func/method (*identifier*) can not be used with (*given*) type'. There is no `default:` and no `fallthrough`
+possible within `for type switch`.
 
-# [Generic method I wished](https://play.golang.org/p/qkslpdyvhaq) can now be specified :)
+**Out types:** EACH `for type switch case` body MUST define return type(s) for all __out__
+typeholders. Clarity and readability trumps repetition and possible inconveniences for the writer.
+> First, a human does not need to look for it elsewhere; second, debugger is then allowed to simply hide all but one branches presenting to the user only instantiated code.
 
-```go
-// Method Checkout returns sum of all Ks in given []K slice.
-// You can use this method on a slice of any type that is either:
-// 1. assignable to int - then it returns int
-// 2. is of type complex128 - then it returns complex128
-// 3. has a field named Value that is assignable to int
-// +. **If** K has additional field named Discount that is of type int
-//    this discount will be be included in the total.
-```
-
-Below are **all** constraints I need for my example generic method to work.
-Single constraint on return type, and four for the receiver type:
-
- 1. `R range int, complex128` // R **is one of** specified types. Func level
- 2. `K = int()` // K is assignable to int (case)
- 3. `K = complex128` // K is of type complex128 (case)
- 4. `K.Value = int()` // K.Value is assignable to int (case)
- 5. `K.Discount = int` // K.Discount is of type int (case)
+Example:
 
 ```go
-func (type []K) Checkout() (total type R) {
-	// for type R range int, complex128  No longer is needed, See 3.2
+func (type []K) Checkout() (total int) {
   for type switch {
-  case ( K.Value = int() && K.Discount = int ): // items with "Sale" sticker
-    var total int // define return type
+  // any struct that has matching Value & Discount fields
+  case ( K.Value = int() && K.Discount = int ):
     for _, v := range x {
       total += (int(v.Value)*1000)/K.Discount
     }
+
+  // any struct that has matching Value field
   case K.Value = int(): // regular price items
-    var total int // here too
     for _, v := range x {
       total += int(v.Value)
     }
-  }
-  case K = int(): // services and interest items are int based
-    var total int // return is generic so every case needs to define it
-    for _, v := range x {
-      total += int(v)
-    }
-  case K = complex128: // unreal prices
-    var total type K   // complex128, just for example
+
+  // last: any K of base type castable to int
+  case K = int():
     for _, v := range x {
       total += int(v)
     }
   }
   return total
 }
+
 ```
 
-# ... and used as intended:
+### Generic Data
+
+> **Note:** this currently is a **rejected** sketch. I think that since one can
+> instantiate any anonymous yet concrete type off generic code, it would be better to do generic
+> data by convention. Ie. generic packages implementing NewDataIdentifier( x, y, z )
+> where x, y, z are of requested types. But I am not sure, so sketch follows:
 
 ```go
-package main
-import "ac" // cashier helper package
-
-type NItem struct {
-  Color FrontColor
-  Weight int
-  Value int
-}
-type SItem struct {
-  NItem
-  Discount int
-}
-
-func main() {
-var x []int
-var regular []NItem
-var sale []SItem
-var cmplx = []complex128{1 + 6i, -2 + 4i, -4 + 0i, -1 + -9i}
-// ...
-// cash customer
-total := regulars.ac.Checkout() // call generic method from ac package on
-total += sale.ac.Checkout()     // many types. This is the single point where
-total += x.ac.Checkout()        // language semantics need to change
-
-// And complex prices for unreal things can be sumed too
-ctotal := cmplx.ac.Checkout() 
+type TypeName struct {
+    for type (
+        S constraint
+        T constraint
+        U constraint
+    )
+    Sfield S
+    Tfield T
+    Ufield U
 }
 ```
+.
 
-## 2. List of possible contractual constraints
+Instantation of generic data **always** uses cast,
+even for untyped constants.
 
-It is "specification by example". Not exhausting one, yet.
+`var x = TypeName{ TyForS(a), TyForT(b), int(-100) }`
+
+The main reason for rejection was about user code pollution. The "New" approach
+gives clean boundary and indicators.
+
+Second was, that I consciously rejected any binding between generic code and
+methodsets. Were it allowed, we would soon read tons and tons of go++++ code.
+So such generic data might only be a "pure" one. From the other hand, it is
+safe to call a generic method on "pure" generic data. Contracts for those would
+be not minimal, but it could give some power. From the yet other leg, though, I do
+not feel whether is it really safe; as of readability and clarity wise.
+
+But it is an open question. It might have a place.
+
+## Subtleties
+
+### signed vs unsigned
+
+While Go1 allows a cast from int to uint without doing abs() [this is C fail that lingers]
+within `for type` constraint `int()` does NOT allow for unsigned types and vice versa.
+In fact "assignable to via a cast" means only precise mapping to the base type for now.
+
+### convertible
+
+I rejected "convertible to" constraint because it can lead, esp novice users, to
+hard to debug code. Ie. where example `T = int(<)` convertible to int might make
+results fry on floats.
+
+
+### but we need conversions
+
+It is possible do conversion by convention - in line with current "has Error, has String" convention.
+I.e. Huge generic method "ReadAs" would be in a package and convertible types would wrap it in their
+real methods (to be seen in methodsets) then... To be pondered of :)
+
+
+## Open Questions
+
+CGG constraints are typesystem based, so all (for now) can be checked and resolved
+eg. by reflect package.
+
+> Can a team's way of specifying constraints and CGG's be combined?
+
+Yep. It is possible.
+
+There can be eg. `for type T { T + T }` constraint written for "addable" type.
+Also `for type T { T.field int }` instead of `for type T.field = int`
+Or `for type T { T < K }` to check comparability. But see Min example at the
+beginning: Substituted types can be checked for comparability by current
+compiler exactly in place of their use, where their types are already concrete.
+No need to write artificial constraint for it.
+
+
+### assignable vs castable
+
+There is a slight difference in mental impedance between me and team member due
+to strict meaning of 'Assignable to' in language's specification; He is right,
+its my fault: I hoped for TypeX() cast-like constraint shape to be
+selfdescriptive, but it isnt. Possible resolutions:
+
+1. Replace "assignable to" with "castable to"
+2. Be descriptive as in "assignable to via a cast"
+
+Current revision used 2. But if 1. sounds better to you, feedback on it.
+
+---
+
+> Should "cast" constraints use repeated type identifier as `for type T = int(T)`?
+
+**NO**: It would introduce a point of c&p error for almost no gain in readability.
+
+## More code samples
+
+```go
+// Sum func
+func Sum(x type []K) (total type K) {
+  for type K range int64(), uint64(), float64(), complex128()
+    for _, v := range x {
+      total += v
+    }
+    return
+}
+
+// TODO next
+```
+
+
+## Rebuttals
+
+**Before you raise concern on a list read here. Its possible that someone already
+got to it and got an answer.**
+
+---
+
+> That is, the compiler is directed, at compile time, as to which code should be compiled.
+
+That is, the code user is directed, at reading time, as to which code will
+compile for given type argument. Easy to see, easy to understand.
+
+> That is metaprogramming.
+
+It is **not**. Every and each statement is written by the human author in plain Go
+and no code is produced by the program itself.
+
+---
+
+> code that can not be compiled.
+
+If an author of the `for type case` wrote the case she supposedly wrote a
+test case for that branch. So a `for type case` branch will be compiled at least for tests.
+
+---
+
+> I agree that no code is produced by the program, but you're suggesting
+> a compile-time decision as to which code should be compiled.    
+
+How does it differ from unused code eliding go compiler and linker do
+already? Used `for type case` code will compile and run. Unused will be
+elided, just a bit earlier.
+
+---
+
+> where is a formal proof of soudness and completeness for this?
+
+Where is one for Go1?
+
+CGG **swims like Generics, flys like Generics, quacks like Generics.** 
+And it is **READABLE**.
+
+--- 
+
+fun ahead: :)
+> [ somenick] ohir: It needs compile-time logic. It needs golang compiler to make decissions over types and branch on that
+
+ [ @ohir ] Ek!? Any compiler already does it for almost **every** line of code it sees.
+
+## Appendix A 
+
+### List of possible contractual constraints
+
+Specification by example. Not exhausting one.
+
 
 `for type (`
 
 typeholder | Constraint | Description
 -----------|------------|------------
 `T`|`range st1, st2, st3          `| T **is one of** given types (in set)
-`T`|`range st1(), st2(), st3()    `| T **is assignable to one of** given types 
+`T`|`range st1(), st2(), st3()    `| T **is assignable to one of** given types via a cast 
 `T`|`range st1, st2, st3()        `|   A mix of above. See "open questions" 4.1
 `T`|`= io.Reader                  `| T **implements** interface
 `T`|`= context.Context            `|   and other interface
 `T`|`= TypeX                      `| T **is of type** TypeX (doesn't make much sense here but it does in switch)
-`T`|`= TypeX()                    `| T **is assignable** to TypeX. 
+`T`|`= TypeX()                    `| T **is assignable to** TypeX via a cast. 
 `T`|`= chan G                     `| T **is a** channel (bidi) for G values
 `T`|`= chan<- G                   `| T **is a** channel (send) for G values
 `T`|`= <-chan G                   `| T **is a** channel (receive) for G values
@@ -217,13 +387,13 @@ typeholder | Constraint | Description
 `T.BiPipe`|`= chan G              `| T **has** field 'BiPipe' of bidi channel for G values
 `T.TxPipe`|`= chan<- G            `| T **has** field 'TxPipe' of send channel for G values
 `T.RxPipe`|`= <-chan G            `| T **has** field 'RxPipe' of receive channel for G values
-`T.Weight`|`= TypeX()             `| T **has** field 'Weight' assignable to type TypeX
+`T.Weight`|`= TypeX()             `| T **has** field 'Weight' assignable to type TypeX via a cast
 `T.Gstats`|`= struct Stats        `| T **has** field 'Gstats' that is of struct type with AT LEAST ALL fields of Stats
 `T.LitStr`|`= struct{ a, b int }  `| T **has** field 'LitStr' that is struct type with AT LEAST a, b int fields
 `T.vcheck`|`= func(U) bool        `| T **has** field 'vcheck' of func value (signature given)
 `T.weight`|`= TypeX               `| T **has** field 'weight' OF type TypeX
 `T.output`|`= io.Writer           `| T **has** field 'output' of type implementing io.Writer
-`T.output`|`= []                  `|   that CAN BE indexed and sliced (elements of any type)
+`T.output`|`= []                  `|   that CAN BE ranged over, indexed and sliced (elements of any type)
 `T.output`|`= []interface{}       `|   kosher version of above
 `T.failed`|`= []E                 `| T **has** field 'failed' that IS a slice or array of Es
 `T.dummie`|`= [64]TypeX           `| T **has** field 'dummie' of exact array type
@@ -238,116 +408,7 @@ typeholder | Constraint | Description
 `)`
 
 
-## 3. Subtleties
-
-### 3.1 Interfaces vs generics
-
-Can generic method be a part of interface specification or be a member of methodset?
-
-NO. It can NOT. CGG uses "on demand" instantiation of generic code **when** it is first time
-used with given set of real types.
-
-### 3.2 In and Out typeholders
-
-There is a subtle thing with "Out" (return) typeholders.
-
-[12 Sep 2018] Looks like the 'out' constraint should NOT be given at package/func level
-as it not only restricts output set but often it would introduce repeating of the same
-constraint(s).
-
-The spcification rules should be plain simple:
-
-- Substituted type of return typeholder MUST BE defined and unambiguous in the first place of use (naked `return` is a use).
-- Return typeholder MUST BE **either** the same as one of input typeholders, **or** it MUST BE defined with `var R type`
-statement in the body of generic function before first use.
-
-[It was:
-~~I opt for them being specified at func level contract for readability purposes. 
-Compiler will know whether they are properly declared in `for type switch` cases, but
-it might be hard for reader to find all occurences and variants. Thats why in example above is the
-`for type R range int, complex128` clause. But it somewhat restricts declarations that will/might use
-typeholders in return type declarations. Here I knew it will be complex128. It needs more pondering.~~]
-
-### 3.3 Should `for type switch case` be allowed to narrow constraints?
-
-Aka whether `case` should be allowed to "differentiate further" having the
-more general constraint up levels. 
-
-YES. It seems good for code readability:
-
-``` go
-func (a, b []N) (r bool) {
-  for type N range uint64, uint32, uint16, uint8, byte
-	for type switch {
-	case N byte():  // we have faster/better algorithm for bytes/uints8
-	    // ... use it here
-	    return r
-	}
-	// other uints go here
-	// ... use slower alghoritm for bigger ints here
-	return r
-}
-``` 
-
-## 4. Open Qs/As
-
-### 4.1 `T range` and mix of "is"/"is assignable to" constraints
-Can contractual constraint in form `T range st1, st2, st3` be mixed
-freely with `T range st1(), st2(), st3()` giving eg:
-
-`T range st1, st2, st3() // is st1 || is st2 || is assignable to st3`
-
-Seems so, it would allow for great conciseness.
-
-### 4.2 signed/unsigned
-
-While Go1 allows a cast from int to uint without doing abs() [this is C fail that lingers]
-within `for type` constraint `int()` does NOT allow for unsigned types and vice versa.
-
-## 5. More code samples
-
-```go
-// Min returns lesser value T
-func Min(a, b T) T {
-  for type switch {
-  case T func (T) Less(T) T:
-      return a.Less(b)
-  }
-  if a < b {
-       return a
-  }
-  return b
-}
-
-// Sum method 
-func (x type []K) Sum() (total type K) {
-  for type K range int64(), float64(), complex128()
-    for _, v := range x {
-      total += v.Value
-    }
-    return
-}
-
-// Sum func
-func Sum(x type []K) (total type K) {
-  for type K range int64(), float64(), complex128()
-    for _, v := range x {
-      total += v.Value
-    }
-    return
-}
-
-// TODO next
-```
-
-## 6. Feedback
-
-Answering "where is a formal proof of soudness and completeness for this?".
-
-Where is one for Go1?
-
-CGG **swims like Generics, flys like Generics, quacks like Generics.** 
-And it is **READABLE**.
+## Feedback
 
 ---
 
@@ -362,3 +423,5 @@ TC, Ohir
 
 
 >> No employer minutes were stolen for this work. Its in public domain now.
+
+
