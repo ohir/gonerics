@@ -45,7 +45,7 @@ func Min(a, b type T) type T {
 Current Go1 code that now uses `func Min(a, b int) int` can use future generic 
 `func Min(a, b type T) type T` without touching a comma. Call site does not change.
 
-**Please read to the end before posting with _"from Sum() example I assume..."_ as critique lead.**
+> *Dear TLDR-er! Please read to the end before posting a critique that starts with "__I assume__"...*
 
 ## Generic code
 ### Terms 
