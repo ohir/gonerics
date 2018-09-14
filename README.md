@@ -20,7 +20,7 @@ so I felt compelled to give a consistent counter-proposal.
 // Sum method 
 func (x type []K) Sum() (r type K) {
   for type ( 
-	    // constraint: "bX()" means "type can be casted to base type bX"
+      // constraint: "bX()" means "type can be casted to base type bX"
       K range int64(), uint64(), float64(), complex128()
   ) 
   for _, v := range x {
@@ -201,7 +201,7 @@ func (type []K) Checkout() (total int) {
     for _, v := range x {
       total += int(v)
     }
-	break // K does not fit contract
+  break // K does not fit contract
   }
   return total
 }
