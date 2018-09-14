@@ -20,6 +20,7 @@ so I felt compelled to give a consistent counter-proposal.
 // Sum method 
 func (x type []K) Sum() (r type K) {
   for type ( 
+	    // constraint: "bX()" means "type can be casted to base type bX"
       K range int64(), uint64(), float64(), complex128()
   ) 
   for _, v := range x {
@@ -31,8 +32,8 @@ func (x type []K) Sum() (r type K) {
 // Min func returns lesser value T
 func Min(a, b type T) type T {
   for type switch {
-  case T func (T) Less(T) T: // specialise for types
-      return a.Less(b)       // that have Less method
+  case T func (T) Less(T) T: // constraint: "type T that has a method 'Less(T) T'"
+      return a.Less(b)       // if it has, call and return
   }
   if a < b { // all other cases
        return a
@@ -43,6 +44,8 @@ func Min(a, b type T) type T {
 
 Current Go1 code that now uses `func Min(a, b int) int` can use future generic 
 `func Min(a, b type T) type T` without touching a comma. Call site does not change.
+
+**Please read to the end before posting with _"from Sum() example I assume..."_ as critique lead.**
 
 ## Generic code
 ### Terms 
