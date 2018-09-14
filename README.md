@@ -41,23 +41,23 @@ func Min(a, b type T) type T {
 }
 ```
 
-Current Go1 code that now uses `func Min(a, b int)` can use future generic 
-`func Min(a, b T) T` without touching a comma. Call site does not change.
+Current Go1 code that now uses `func Min(a, b int) int` can use future generic 
+`func Min(a, b type T) type T` without touching a comma. Call site does not change.
 
 ## Generic code
 ### Terms 
 
 Given generic `func (a type T) Gen(b type U, c uint32) (r type R, e Error)`
 
-- **T** and **U** are **"In"** typeholders; reffered simply as "in holders" or just "holders".
-- **R** is a **"return"** (or **"Out"**) typeholder; reffered simply as "return holder"
-- **"Substituted type**" means real type the code uses in given place after code variant instantiation.
+- **T** and **U** are **in** typeholders; reffered simply as "in holders" or just "holders".
+- **R** is a **return** (or **out**) typeholder; reffered simply as "return holder"
+- "**Substituted type**" means real type the code uses in given place after code variant instantiation.
  Often reffered as either "in type" or "out type". 
-- **"in type"** means "substituted type" given to the **"In"** typeholder at call site.
-- **"out type"** means "substituted type" of the return parameter given to the **"Out"** typeholder
-within generic function. Also: type returned to the call site.
-- **"Solid type**" means a non-interface type.
-- **"external type"** means a non-generic type defined elsewhere. Parameters 'c' and 'e' are of defined externally types.
+- "**in type**" means "substituted type" given to the **in** typeholder at call site. IOW: type that comes in from call site.
+- "**out type**" means "substituted type" of the return parameter given to the **out** typeholder
+within generic function. IOW: type returned to the call site.
+- "**external type**" means a non-generic type defined elsewhere. Parameters 'c' and 'e' are of defined externally types.
+- "**Solid type**" means a non-interface type.
 
 ### Generic Interfaces
 
@@ -152,8 +152,6 @@ a substituted type can be **precisely** casted to the stated type (ie. usually a
 So `T = uint64()` allows for any type that has a base type of byte, uint8..uint64 but not one of base type int.
 
 
-
-
 ### "for type" switch
 
 is used for branching specialised code over one or more **in** types.
@@ -166,9 +164,13 @@ AND (&&), and only with AND.
 left-to-right and top-to-bottom; the first case that checked type matches triggers use of the
 statements of the associated case; the other cases are skipped. If no case matches then substituted
 type **does not match** and no code from this instance of `for type switch` is used. If substituted
-type does not match somewhere within all of possible places (switches) it is a compile error of
-'func/method (*identifier*) can not be used with (*given*) type'. There is no `default:` and no `fallthrough`
-possible within `for type switch`.
+type does not match somewhere within all of possible places (switches) or **break** statement is reached
+it is a compile error of "func/method *identifier* can not be used with *given* type(s)".
+
+**break** statement can be given as the **last** case in the `for type switch` to signal that
+at least one substituted type does not make sense for the code.
+
+There is no `default:` and no `fallthrough` possible within `for type switch`.
 
 **Out types:** EACH `for type switch case` body MUST define return type(s) for all __out__
 typeholders. Clarity and readability trumps repetition and possible inconveniences for the writer.
@@ -196,6 +198,7 @@ func (type []K) Checkout() (total int) {
     for _, v := range x {
       total += int(v)
     }
+	break // K does not fit contract
   }
   return total
 }
@@ -223,7 +226,7 @@ type TypeName struct {
 ```
 .
 
-Instantation of generic data **always** uses cast,
+Instantation of generic data via literal **always** uses cast,
 even for untyped constants.
 
 `var x = TypeName{ TyForS(a), TyForT(b), int(-100) }`
@@ -232,7 +235,7 @@ The main reason for rejection was about user code pollution. The "New" approach
 gives clean boundary and indicators.
 
 Second was, that I consciously rejected any binding between generic code and
-methodsets. Were it allowed, we would soon read tons and tons of go++++ code.
+methodsets. Were it allowed, we would soon read tons and tons of go++ code.
 So such generic data might only be a "pure" one. From the other hand, it is
 safe to call a generic method on "pure" generic data. Contracts for those would
 be not minimal, but it could give some power. From the yet other leg, though, I do
@@ -251,8 +254,8 @@ In fact "assignable to via a cast" means only precise mapping to the base type f
 ### convertible
 
 I rejected "convertible to" constraint because it can lead, esp novice users, to
-hard to debug code. Ie. where example `T = int(<)` convertible to int might make
-results fry on floats.
+hard to debug code. Ie. where example `for type T = int(<) // T is convertible to int`
+might make results fry on floats.
 
 
 ### but we need conversions
@@ -267,12 +270,12 @@ real methods (to be seen in methodsets) then... To be pondered of :)
 CGG constraints are typesystem based, so all (for now) can be checked and resolved
 eg. by reflect package.
 
-> Can a team's way of specifying constraints and CGG's be combined?
+> Can a team's way of specifying constraints "by the code" and CGG's be combined?
 
 Yep. It is possible.
 
-There can be eg. `for type T { T + T }` constraint written for "addable" type.
-Also `for type T { T.field int }` instead of `for type T.field = int`
+There could be eg. `for type T { T + T }` constraint for "addable" types.
+Also `for type T { T.field = int(0) }` instead of `for type T.field = int`
 Or `for type T { T < K }` to check comparability. But see Min example at the
 beginning: Substituted types can be checked for comparability by current
 compiler exactly in place of their use, where their types are already concrete.
@@ -284,7 +287,7 @@ No need to write artificial constraint for it.
 There is a slight difference in mental impedance between me and team member due
 to strict meaning of 'Assignable to' in language's specification; He is right,
 its my fault: I hoped for TypeX() cast-like constraint shape to be
-selfdescriptive, but it isnt. Possible resolutions:
+selfdescriptive, but it apparently isnt. Possible resolutions:
 
 1. Replace "assignable to" with "castable to"
 2. Be descriptive as in "assignable to via a cast"
@@ -295,7 +298,7 @@ Current revision used 2. But if 1. sounds better to you, feedback on it.
 
 > Should "cast" constraints use repeated type identifier as `for type T = int(T)`?
 
-**NO**: It would introduce a point of c&p error for almost no gain in readability.
+**NO**: it would introduce a point of c&p error for almost no gain in readability.
 
 ## More code samples
 
@@ -312,6 +315,11 @@ func Sum(x type []K) (total type K) {
 // TODO next
 ```
 
+## MeToos
+
+[Nate Finch](https://npf.io/2018/09/go2-contracts-go-too-far/):
+
+> The [Go Team's] contracts design, as written, IMO, will make the language significantly worse. Wrapping my head around what a random contract actually means for my code is just too hard if we’re using example code as the means of definition. Sure, it’s a clever way to ensure that only types that can be used in that way are viable… but clever isn’t good.
 
 ## Rebuttals
 
@@ -375,9 +383,8 @@ typeholder | Constraint | Description
 -----------|------------|------------
 `T`|`range st1, st2, st3          `| T **is one of** given types (in set)
 `T`|`range st1(), st2(), st3()    `| T **is assignable to one of** given types via a cast 
-`T`|`range st1, st2, st3()        `|   A mix of above. See "open questions" 4.1
+`T`|`range st1, st2, st3()        `|   A mix of above.
 `T`|`= io.Reader                  `| T **implements** interface
-`T`|`= context.Context            `|   and other interface
 `T`|`= TypeX                      `| T **is of type** TypeX (doesn't make much sense here but it does in switch)
 `T`|`= TypeX()                    `| T **is assignable to** TypeX via a cast. 
 `T`|`= chan G                     `| T **is a** channel (bidi) for G values
@@ -393,9 +400,9 @@ typeholder | Constraint | Description
 `T.vcheck`|`= func(U) bool        `| T **has** field 'vcheck' of func value (signature given)
 `T.weight`|`= TypeX               `| T **has** field 'weight' OF type TypeX
 `T.output`|`= io.Writer           `| T **has** field 'output' of type implementing io.Writer
-`T.output`|`= []                  `|   that CAN BE ranged over, indexed and sliced (elements of any type)
-`T.output`|`= []interface{}       `|   kosher version of above
 `T.failed`|`= []E                 `| T **has** field 'failed' that IS a slice or array of Es
+`T.output`|`= []                  `| T **can be** ranged over, indexed and sliced (elements of any type)
+`T.output`|`= []interface{}       `|   kosher version of above
 `T.dummie`|`= [64]TypeX           `| T **has** field 'dummie' of exact array type
 `T.Validm`|`= map[K]V             `| T **has** field 'Validm' that is a map of Vs with K type keys
 `T`|` func (T) Commit(bool) error` | T **has** method (T) Commit(bool) error; Having pointer one will pass too. 
