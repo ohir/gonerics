@@ -73,42 +73,6 @@ within generic function. IOW: type returned to the call site.
 - Defined on concrete type method MAY USE (wrap) generic code.
 
 
-### Generic methods
-
-As generic code is excluded from interface methodsets, it gives
-possibility to call **any** declared generic func as a **method**
-given that first parameter is parametrized and receiver matches
-first parameter contract.
-
-```go
-type MyInt int8
-var a MyInt
-
-h1 := Half(a)  // exact variant of code
-h2 := a.Half() // runs for both calls.
-
-func Half(x type T) (r type T) {
-  for type T = int64() // any int based type
-  r = x / 2
-  return
-}
-
-```
-
-It does not extend to generic methods declared.
-
-```go
-func (x type T) Half() (r type T) {
-  for type T = int64()
-  r = x / 2
-  return
-}
-
-h1 := Half(a) // error, method can be called only as a method
-
-```
-
-> Note. Should CGG proposal disallow this for one or the other?
 
 ### Generic return types
 
@@ -291,6 +255,45 @@ not feel whether is it really safe; as of readability and clarity wise.
 
 But it is an open question. It might have a place.
 
+
+### Generic methods
+
+As generic code is excluded from interface methodsets, it gives
+possibility to call **any** declared generic func as a **method**
+given that first parameter is parametrized and receiver matches
+first parameter contract.
+
+```go
+type MyInt int8
+var a MyInt
+
+h1 := Half(a)  // exact variant of code
+h2 := a.Half() // runs for both calls.
+
+func Half(x type T) (r type T) {
+  for type T = int64() // any int based type
+  r = x / 2
+  return
+}
+
+```
+
+It does not extend to generic methods declared.
+
+```go
+func (x type T) Half() (r type T) {
+  for type T = int64()
+  r = x / 2
+  return
+}
+
+h1 := Half(a) // error, method can be called only as a method
+
+```
+
+> Note. Should CGG proposal disallow this for one or the other?
+
+
 ## Subtleties
 
 ### signed vs unsigned
@@ -312,11 +315,20 @@ It is possible do conversion by convention - in line with current "has Error, ha
 I.e. Huge generic method "ReadAs" would be in a package and convertible types would wrap it in their
 real methods (to be seen in methodsets) then... To be pondered of :)
 
-
 ## Open Questions
 
-CGG constraints are typesystem based, so all (for now) can be checked and resolved
-eg. by reflect package.
+### transformable
+
+Now I use term "transformable". I don't know whether is it enough precise.
+
+> What about embedding?
+
+Also, should the constraint of "transformable" allow meaning of "type embeds"?
+
+It is all about generic code written "using T as". Types that embed already can
+be used 'as'.
+
+### "by the code" contracts
 
 > Can a team's way of specifying constraints "by the code" and CGG's be combined?
 
@@ -330,11 +342,12 @@ compiler exactly in place of their use, where their types are already concrete.
 No need to write artificial constraint for it.
 
 
----
+### T = int(T)
 
 > Should "cast" constraints use repeated type identifier as `for type T = int(T)`?
 
 **NO**: it would introduce a point of c&p error for almost no gain in readability.
+
 
 ## More code samples
 
