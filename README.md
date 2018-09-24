@@ -95,6 +95,21 @@ func Half(x type T) (r type T) {
 
 ```
 
+It does not extend to generic methods declared.
+
+```go
+func (x type T) Half() (r type T) {
+  for type T = int64()
+  r = x / 2
+  return
+}
+
+h1 := Half(a) // error, method can be called only as a method
+
+```
+
+> Note. Should CGG proposal disallow this for one or the other?
+
 ### Generic return types
 
 There are general limitations on generic return types:
