@@ -46,6 +46,8 @@ Current Go1 code that now uses `func Min(a, b int) int` can use future generic
 `func Min(a, b type T) type T` without touching a comma. Call site does not change.
 
 > *Dear TLDR-er! Please read to the end before posting a critique that starts with "__I assume__"...*
+> If you can get to how is this type-safe, you may try to read [How does it work](howdoes.md) sketch.
+
 
 ## Generic code
 ### Terms 
