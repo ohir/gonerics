@@ -72,6 +72,29 @@ within generic function. IOW: type returned to the call site.
 - NO generic method is a member of any methodset.
 - Defined on concrete type method MAY USE (wrap) generic code.
 
+
+### Generic methods
+
+As generic code is excluded from interface methodsets, it gives
+possibility to use **any** declared generic func as a **method**
+given that first parameter is parametrized and receiver matches
+first parameter contract.
+
+```go
+type MyInt int8
+var a MyInt
+
+h1 := Half(a)  // exact variant of code
+h2 := a.Half() // runs for both calls.
+
+func Half(x type T) (r type T) {
+  for type T = int64() // any int based type
+  r = x / 2
+  return
+}
+
+```
+
 ### Generic return types
 
 There are general limitations on generic return types:
