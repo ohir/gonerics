@@ -76,7 +76,7 @@ within generic function. IOW: type returned to the call site.
 ### Generic methods
 
 As generic code is excluded from interface methodsets, it gives
-possibility to use **any** declared generic func as a **method**
+possibility to call **any** declared generic func as a **method**
 given that first parameter is parametrized and receiver matches
 first parameter contract.
 
