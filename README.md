@@ -192,14 +192,13 @@ Typeholder | Constraint | Description
 `)`
 
 **Important:** in the context of constraints **transformable** means that a substituted type
-can be **precisely** casted to the stated type, usually base one. Implicit conversions are forbidden.
+can be **precisely** used as the stated type, usually base one. Implicit conversions are forbidden.
 
 So `T = uint64()` allows for any type that has a base type of byte, uint8..uint64 but not one of base type int.
+Where in type `uint8` matches contractual `T = uint64()` it **will be** used with code variant that operates
+on the `uint8` parameter. It will not be "casted to uint64".
 
-The contractual `T = uint64()` does **not** imply that the variable of T will be casted to an uint64. Code variant
-will use conforming base type instead. So `uint8` matches `T = uint64()` contract and the code variant will use
-the variable `of type holder T` like it would be of type `uint8`.
-
+> Q. Should the contract be straight using eg 'as': i.e. `T as TypeX` ? It adds 'as' to the reserved identifiers.
 
 ### "for type" switch
 
