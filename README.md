@@ -61,6 +61,7 @@ Given generic `func (a type T) Gen(b type U, c uint32) (r type R, e Error)`
 within generic function. IOW: type returned to the call site.
 - "**external type**" means a non-generic type defined elsewhere. Parameters 'c' and 'e' are of defined externally types.
 - "**Solid type**" means a non-interface type.
+- "**Transformable to**" means that a type can be precisely represented by "a base type of".
 
 ### Generic Interfaces
 
@@ -143,16 +144,20 @@ Typeholder | Constraint | Description
 -----------|------------|------------
 `T`|`range st1, st2, st3          `| T **is one of** given types (in set)
 `T`|`= TypeX                      `| T **is of type** TypeX
-`T`|`= TypeX()                    `| T **is assignable** via a cast to TypeX. 
+`T`|`= TypeX()                    `| T **is transformable** to base TypeX. 
 `T`|`func (*T) Check() bool       `| T **has** method 'Check' of given signature 
-`T.height`|`= TypeX()             `| T **has** field 'height' castable to type TypeX
+`T.height`|`= TypeX()             `| T **has** field 'height' 
 
 `)`
 
-**Important:** in the context of constraints **assignable to via a cast** means that
-a substituted type can be **precisely** casted to the stated type (ie. usually a base one). Implicit conversions are forbidden.
+**Important:** in the context of constraints **transformable** means that a substituted type
+can be **precisely** casted to the stated type, usually base one. Implicit conversions are forbidden.
 
 So `T = uint64()` allows for any type that has a base type of byte, uint8..uint64 but not one of base type int.
+
+The contractual `T = uint64()` does **not** imply that the variable of T will be casted to an uint64. Code variant
+will use conforming base type instead. So `uint8` matches `T = uint64()` contract and the code variant will use
+the variable `of type holder T` like it would be of type `uint8`.
 
 
 ### "for type" switch
@@ -251,8 +256,8 @@ But it is an open question. It might have a place.
 ### signed vs unsigned
 
 While Go1 allows a cast from int to uint without doing abs() [this is C fail that lingers]
-within `for type` constraint `int()` does NOT allow for unsigned types and vice versa.
-In fact "assignable to via a cast" means only precise mapping to the base type for now.
+within `for type` constraint `int()` means "precisely transformable" and such a contract
+does NOT allow for unsigned types and vice versa.
 
 ### convertible
 
@@ -284,18 +289,6 @@ beginning: Substituted types can be checked for comparability by current
 compiler exactly in place of their use, where their types are already concrete.
 No need to write artificial constraint for it.
 
-
-### assignable vs castable
-
-There is a slight difference in mental impedance between me and team member due
-to strict meaning of 'Assignable to' in language's specification; He is right,
-its my fault: I hoped for TypeX() cast-like constraint shape to be
-selfdescriptive, but it apparently isnt. Possible resolutions:
-
-1. Replace "assignable to" with "castable to"
-2. Be descriptive as in "assignable to via a cast"
-
-Current revision used 2. But if 1. sounds better to you, feedback on it.
 
 ---
 
@@ -368,6 +361,25 @@ And it is **READABLE**.
 
 --- 
 
+> This is not generic
+
+From mine's C/go cave perspective, it is. It is not, maybe right, for whomever
+is used to write c++/java generics, where they thourough source operate on
+symbolic types (formal type parameters) then they dully instantiate it manually
+one by one, place after place using type arguments. Yes they are able to write
+a few less lines every level up the generic declaration, but they are cutting
+themselves off form the very possiblity of linear reading.
+
+--- 
+
+> I do insist on **not generic**
+
+I never succeeded with convincing my c++ pals that Go is an OO language and that
+Go is right at it. I will never convince them that Go can have reusable yet
+type safe code using "contract on allowed types" only. So be it.
+
+---
+
 fun ahead: :)
 > [ somenick] ohir: It needs compile-time logic. It needs golang compiler to make decissions over types and branch on that
 
@@ -385,11 +397,11 @@ Specification by example. Not exhausting one.
 typeholder | Constraint | Description
 -----------|------------|------------
 `T`|`range st1, st2, st3          `| T **is one of** given types (in set)
-`T`|`range st1(), st2(), st3()    `| T **is assignable to one of** given types via a cast 
+`T`|`range st1(), st2(), st3()    `| T **is transformable to one of** given types via a cast 
 `T`|`range st1, st2, st3()        `|   A mix of above.
 `T`|`= io.Reader                  `| T **implements** interface
 `T`|`= TypeX                      `| T **is of type** TypeX (doesn't make much sense here but it does in switch)
-`T`|`= TypeX()                    `| T **is assignable to** TypeX via a cast. 
+`T`|`= TypeX()                    `| T **is transformable to** TypeX via a cast. 
 `T`|`= chan G                     `| T **is a** channel (bidi) for G values
 `T`|`= chan<- G                   `| T **is a** channel (send) for G values
 `T`|`= <-chan G                   `| T **is a** channel (receive) for G values
